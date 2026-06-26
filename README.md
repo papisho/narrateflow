@@ -35,10 +35,19 @@ One input. Four outputs. One pipeline.
 
 ### Week 1: Foundation (Jul 1-6) — upcoming
 
-- FastAPI project setup
-- Claude prompt generation service
-- Async job infrastructure
-- `/generate`, `/status`, `/result` endpoints
+### Day 1 (complete)
+
+- Virtual environment set up with all dependencies installed
+- config.py loading and validating all environment variables on startup
+- schemas.py defining all request and response shapes
+- main.py with CORS middleware and /health check endpoint
+- generate.py with /generate, /status, and /result endpoints and in-memory job store
+- Server confirmed running at localhost:8000 with auto-generated /docs
+
+#### Day 2 (upcoming)
+
+- claude_service.py: prompt generation via Claude API
+- Test: topic in, four structured prompts out
 
 ---
 
