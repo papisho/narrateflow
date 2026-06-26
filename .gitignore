@@ -1,0 +1,24 @@
+# env't variables
+.env
+
+# python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# virtual environment
+venv/
+.venv/
+
+# VS Code settings
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Generated  output files
+output/
+
+# Logs
+*.log
