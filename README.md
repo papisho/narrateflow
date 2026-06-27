@@ -60,10 +60,14 @@ One input. Four outputs. One pipeline.
 - Added /debug/prompts/{job_id} endpoint for inspecting Claude output during development
 - Schema validation confirmed working: invalid tone and duration values rejected with 422
 
-### Day 4 (upcoming)
+#### Day 4 (complete)
 
-- Adding async job system (asyncio background tasks)
-- building /status & /result endpoints with in-memory job store
+- Converted /generate to use FastAPI BackgroundTasks
+- Claude prompt generation now runs asynchronously after the response is sent
+- POST /generate returns job_id immediately without blocking
+- Frontend can poll /status to watch script step flip from pending to complete
+- Added error field to job state for capturing pipeline failure details
+- Confirmed working: instant response, background task completes, status updates correctly
 
 ---
 

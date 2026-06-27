@@ -1,11 +1,14 @@
 
 # Defines the /generate, /status, and /result API endpoints.
+# /generate kicks off a background task and returns the job_id immediately.
+# /status and /result let the frontend poll for progress and final assets.
+#
 # Jobs are stored in memory for now (a plain dict).
 # This will be replaced with a database in a later week if needed.
 
 import uuid
 from datetime import datetime, timezone
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, BackgroundTasks, HTTPException
 from models.schemas import (
     GenerateRequest,
     GenerateResponse,
@@ -23,46 +26,57 @@ router = APIRouter()
 jobs: dict = {}
 
 
-@router.post("/generate", response_model=GenerateResponse)
-async def generate(request: GenerateRequest):
-    # Creates a new job, generates pipeline prompts via Claude, and stores them.
-    # The actual media pipeline (image, video, audio) runs in the background
-    # (added in Day 5). For now, this returns once Claude has produced prompts.
-    job_id = str(uuid.uuid4())
-
-    # Initialize job state with all fields the pipeline will eventually populate
-    jobs[job_id] = {
-        "status": "processing",
-        "progress": PipelineProgress(),
-        "assets": AssetUrls(),
-        "script": None,
-        "prompts": None,
-        "created_at": datetime.now(timezone.utc).isoformat(),
-        "request": request,
-    }
-
-    # Generate the four coordinated prompts via Claude
+# Background task that runs the pipeline for a given job.
+# Currently only runs the Claude prompt generation step.
+# Week 2 adds image and audio generation. Week 3 adds video and composite.
+async def run_pipeline(job_id: str, request: GenerateRequest):
     try:
+        # Step 1: Generate prompts via Claude
         prompts = await generate_prompts(
             topic=request.topic,
             tone=request.tone.value,
             duration=request.duration.value,
         )
 
-        # Store the full prompt set and mark the script step complete
         jobs[job_id]["prompts"] = prompts.model_dump()
         jobs[job_id]["script"] = prompts.narration_script
         jobs[job_id]["progress"].script = "complete"
 
+        # Future steps will run here:
+        # - image generation (Week 2)
+        # - narration audio (Week 2)
+        # - background music (Week 2)
+        # - video generation (Week 3)
+        # - composite (Week 3)
+        # For now, the job remains "processing" until the rest of the pipeline is built.
+
     except Exception as e:
-        # If Claude fails, mark the job as failed so the user gets a clear status.
-        # The full media pipeline is not implemented yet, so this is the only failure point.
+        # If any step fails, mark the job as failed and store the error message.
         jobs[job_id]["status"] = "failed"
+        jobs[job_id]["error"] = f"Pipeline failed at script step: {str(e)}"
         jobs[job_id]["progress"].script = "failed"
-        raise HTTPException(
-            status_code=500,
-            detail=f"Prompt generation failed. Try again in a moment. ({str(e)})",
-        )
+
+
+@router.post("/generate", response_model=GenerateResponse)
+async def generate(request: GenerateRequest, background_tasks: BackgroundTasks):
+    # Creates a new job and schedules the pipeline to run in the background.
+    # Returns the job_id immediately so the frontend can start polling /status.
+    job_id = str(uuid.uuid4())
+
+    # Initialize job state with all fields the pipeline will populate
+    jobs[job_id] = {
+        "status": "processing",
+        "progress": PipelineProgress(),
+        "assets": AssetUrls(),
+        "script": None,
+        "prompts": None,
+        "error": None,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "request": request,
+    }
+
+    # Schedule the pipeline to run after the response is sent
+    background_tasks.add_task(run_pipeline, job_id, request)
 
     return GenerateResponse(job_id=job_id, status="processing")
 
@@ -96,7 +110,8 @@ async def get_result(job_id: str):
         raise HTTPException(status_code=400, detail="Job is still processing. Poll /status first.")
 
     if job["status"] == "failed":
-        raise HTTPException(status_code=400, detail="Job failed. Check /status for details.")
+        error_detail = job.get("error", "Job failed. Check /status for details.")
+        raise HTTPException(status_code=400, detail=error_detail)
 
     return ResultResponse(
         job_id=job_id,
