@@ -33,7 +33,7 @@ One input. Four outputs. One pipeline.
 - Project folder structure created
 - Environment variables configured
 
-### Week 1: Foundation 
+### Week 1: Foundation
 
 ### Day 1 (complete)
 
@@ -45,15 +45,25 @@ One input. Four outputs. One pipeline.
 - Server confirmed running at localhost:8000 with auto-generated /docs
 
 #### Day 2 (complete)
+
 - claude_service.py generating structured prompts via Claude API
 - Uses Anthropic structured outputs with Pydantic schema for guaranteed valid responses
 - Returns four coordinated prompts: image, video motion, narration script, music mood
 - System prompt enforces tone matching and cross-prompt consistency
 - Confirmed working end to end: topic in, four structured prompts out
 
-#### Day 3 (upcoming)
-- Wire Claude service into /generate endpoint
-- Return generated prompts in the API response
+#### Day 3 (complete)
+
+- Wired Claude service into /generate endpoint
+- Prompts stored in job state, narration script accessible via /result
+- Script step marked complete in pipeline progress after Claude responds
+- Added /debug/prompts/{job_id} endpoint for inspecting Claude output during development
+- Schema validation confirmed working: invalid tone and duration values rejected with 422
+
+### Day 4 (upcoming)
+
+- Adding async job system (asyncio background tasks)
+- building /status & /result endpoints with in-memory job store
 
 ---
 
