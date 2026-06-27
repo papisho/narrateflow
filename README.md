@@ -25,7 +25,8 @@ One input. Four outputs. One pipeline.
 
 ## Project status
 
-### Pre-week: Account and environment setup (complete)
+<details>
+<summary><strong>Pre-week: Account and environment setup (complete)</strong></summary>
 
 - All API accounts created: Backblaze B2, GMI Cloud, ElevenLabs, Stability AI, Anthropic
 - GMI Cloud hackathon credits confirmed
@@ -33,9 +34,12 @@ One input. Four outputs. One pipeline.
 - Project folder structure created
 - Environment variables configured
 
-### Week 1: Foundation
+</details>
 
-### Day 1 (complete)
+<details>
+<summary><strong>Week 1: Foundation (complete)</strong></summary>
+
+**Day 1**
 
 - Virtual environment set up with all dependencies installed
 - config.py loading and validating all environment variables on startup
@@ -44,7 +48,7 @@ One input. Four outputs. One pipeline.
 - generate.py with /generate, /status, and /result endpoints and in-memory job store
 - Server confirmed running at localhost:8000 with auto-generated /docs
 
-#### Day 2 (complete)
+**Day 2**
 
 - claude_service.py generating structured prompts via Claude API
 - Uses Anthropic structured outputs with Pydantic schema for guaranteed valid responses
@@ -52,7 +56,7 @@ One input. Four outputs. One pipeline.
 - System prompt enforces tone matching and cross-prompt consistency
 - Confirmed working end to end: topic in, four structured prompts out
 
-#### Day 3 (complete)
+**Day 3**
 
 - Wired Claude service into /generate endpoint
 - Prompts stored in job state, narration script accessible via /result
@@ -60,14 +64,28 @@ One input. Four outputs. One pipeline.
 - Added /debug/prompts/{job_id} endpoint for inspecting Claude output during development
 - Schema validation confirmed working: invalid tone and duration values rejected with 422
 
-#### Day 4 (complete)
+**Day 4**
 
-- Converted /generate to use FastAPI BackgroundTasks
-- Claude prompt generation now runs asynchronously after the response is sent
-- POST /generate returns job_id immediately without blocking
-- Frontend can poll /status to watch script step flip from pending to complete
-- Added error field to job state for capturing pipeline failure details
-- Confirmed working: instant response, background task completes, status updates correctly
+- Converted /generate to use FastAPI BackgroundTasks for non-blocking execution
+- Built run_pipeline background task to orchestrate all pipeline steps
+- POST /generate now returns job_id immediately without waiting for Claude
+- Pipeline progress updates flow through job state and surface via /status
+- Confirmed end to end: instant response, background completion, status polling works
+
+**Week 1 polish**
+
+- Switched to AsyncAnthropic client for non-blocking Claude calls
+- Added **init**.py to backend/models/, backend/routers/, and backend/services/
+- Fixed Anthropic typo in .env.example
+
+</details>
+
+<details>
+<summary><strong>Week 2: Image and audio pipeline (upcoming)</strong></summary>
+
+_In progress_
+
+</details>
 
 ---
 

@@ -6,13 +6,13 @@
 # Uses Anthropic's structured outputs feature, which guarantees that
 # the response matches our Pydantic schema. No fragile JSON parsing.
 
-from anthropic import Anthropic
+from anthropic import AsyncAnthropic
 from pydantic import BaseModel, Field
 from config import ANTHROPIC_API_KEY
 
 # Initialize the Anthropic client once at module load.
 # Reused across all calls to avoid reconnect overhead.
-client = Anthropic(api_key=ANTHROPIC_API_KEY)
+client = AsyncAnthropic(api_key=ANTHROPIC_API_KEY)
 
 
 # The exact shape Claude must return.
@@ -90,7 +90,7 @@ async def generate_prompts(topic: str, tone: str, duration: int) -> PipelineProm
     )
 
     try:
-        response = client.messages.parse(
+        response = await client.messages.parse(
             model="claude-sonnet-4-6",
             max_tokens=2048,
             system=SYSTEM_PROMPT,
