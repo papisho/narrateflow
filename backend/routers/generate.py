@@ -18,6 +18,7 @@ from models.schemas import (
     AssetUrls,
 )
 from services.claude_service import generate_prompts
+from services.pipeline_service import generate_image
 
 router = APIRouter()
 
@@ -42,19 +43,26 @@ async def run_pipeline(job_id: str, request: GenerateRequest):
         jobs[job_id]["script"] = prompts.narration_script
         jobs[job_id]["progress"].script = "complete"
 
-        # Future steps will run here:
         # - image generation (Week 2)
+
+        jobs[job_id]["progress"].image = "processing"
+        image_url = await generate_image(prompts.image_prompt, job_id)
+        jobs[job_id]["assets"].image_url = image_url
+        jobs[job_id]["progress"].image = "complete"
+
+        jobs[job_id]["status"] = "complete"
+
+
         # - narration audio (Week 2)
         # - background music (Week 2)
         # - video generation (Week 3)
         # - composite (Week 3)
-        # For now, the job remains "processing" until the rest of the pipeline is built.
+        
 
     except Exception as e:
         # If any step fails, mark the job as failed and store the error message.
         jobs[job_id]["status"] = "failed"
-        jobs[job_id]["error"] = f"Pipeline failed at script step: {str(e)}"
-        jobs[job_id]["progress"].script = "failed"
+        jobs[job_id]["error"] = str(e)
 
 
 @router.post("/generate", response_model=GenerateResponse)
