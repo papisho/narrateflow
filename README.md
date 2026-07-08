@@ -102,6 +102,15 @@ One input. Four outputs. One pipeline.
 - Resolved ElevenLabs free tier restriction: switched from Victoria to Adam voice
 - Confirmed end to end: narration script → mp3 generated → uploaded to B2 → durable URL returned
 
+**Music geeration**
+
+- Built generate_music using Stability AI REST API directly with httpx
+- Bypassed Genblaze StabilityAudioProvider due to Windows path restriction pattern
+- Used multipart/form-data for correct Stability AI API request format
+- Direct boto3 upload to B2 with public URL construction
+- Wired generate_music into run_pipeline after narration step
+- Music progress tracked: processing → complete in job state
+- Confirmed end to end: music prompt → ~3 min mp3 generated → uploaded to B2 → durable URL returned
 </details>
 
 ---

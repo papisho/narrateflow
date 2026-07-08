@@ -18,8 +18,10 @@ from genblaze_elevenlabs import ElevenLabsTTSProvider
 import boto3
 import tempfile
 import os
+import httpx
 from elevenlabs.client import ElevenLabs
 from config import (
+        STABILITY_API_KEY,
         ELEVENLABS_API_KEY,
         ELEVENLABS_VOICE_ID,
         B2_KEY_ID,
@@ -112,3 +114,68 @@ async def generate_narration(narration_script: str, job_id: str) -> str:
 
     except Exception as e:
         raise RuntimeError(f"B2 upload failed: {str(e)}") from e
+    
+
+async def generate_music(music_prompt: str, job_id: str, duration: int) -> str:
+    """Generate background music via Stability AI REST API and upload to B2.
+
+    Calls the Stability AI stable-audio-2.5 endpoint directly.
+    Uploads the resulting mp3 to B2 via boto3 and returns the durable public URL.
+    Raises RuntimeError if generation or upload fails.
+    """
+
+
+    # Call Stability AI REST API directly
+    try:
+        async with httpx.AsyncClient(timeout=120) as client:
+            response = await client.post(
+                "https://api.stability.ai/v2beta/audio/stable-audio-2/text-to-audio",
+                headers={
+                    "Authorization": f"Bearer {STABILITY_API_KEY}",
+                    "Accept": "audio/*",
+                },
+                files={
+                    "prompt": (None, music_prompt),
+                    "seconds_start": (None, "0"),
+                    "seconds_total": (None, str(duration)),
+                    "output_format": (None, "mp3"),
+                },
+            )
+
+        if response.status_code != 200:
+            raise RuntimeError(
+                f"Stability AI API error {response.status_code}: {response.text}"
+            )
+
+        audio_bytes = response.content
+
+    except httpx.TimeoutException:
+        raise RuntimeError("Stability AI music generation timed out after 120 seconds.")
+    except RuntimeError:
+        raise
+    except Exception as e:
+        raise RuntimeError(f"Stability AI music generation failed: {str(e)}") from e
+
+    # Upload to B2 via boto3
+    try:
+        s3 = boto3.client(
+            "s3",
+            endpoint_url=f"https://s3.{B2_REGION}.backblazeb2.com",
+            aws_access_key_id=B2_KEY_ID,
+            aws_secret_access_key=B2_APP_KEY,
+        )
+
+        key = f"music/{job_id}/music.mp3"
+
+        s3.put_object(
+            Bucket=B2_BUCKET,
+            Key=key,
+            Body=audio_bytes,
+            ContentType="audio/mpeg",
+        )
+
+        url = f"https://{B2_BUCKET}.s3.{B2_REGION}.backblazeb2.com/{key}"
+        return url
+
+    except Exception as e:
+        raise RuntimeError(f"B2 music upload failed: {str(e)}") from e

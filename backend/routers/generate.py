@@ -18,7 +18,7 @@ from models.schemas import (
     AssetUrls,
 )
 from services.claude_service import generate_prompts
-from services.pipeline_service import generate_image, generate_narration
+from services.pipeline_service import generate_image, generate_narration, generate_music
 
 
 router = APIRouter()
@@ -69,6 +69,21 @@ async def run_pipeline(job_id: str, request: GenerateRequest):
         jobs[job_id]["status"] = "complete"
 
         # - background music (Week 2)
+        # Step 4: Generate background music
+        jobs[job_id]["progress"].music = "processing"
+        try:
+            music_url = await generate_music(
+                prompts.music_prompt,
+                job_id,
+                request.duration.value,
+            )
+            jobs[job_id]["assets"].music_url = music_url
+            jobs[job_id]["progress"].music = "complete"
+        except Exception as music_error:
+            print(f"MUSIC ERROR: {music_error}")
+            jobs[job_id]["progress"].music = "failed"
+            raise
+
         # - video generation (Week 3)
         # - composite (Week 3)
         
