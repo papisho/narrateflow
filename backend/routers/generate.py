@@ -18,7 +18,8 @@ from models.schemas import (
     AssetUrls,
 )
 from services.claude_service import generate_prompts
-from services.pipeline_service import generate_image
+from services.pipeline_service import generate_image, generate_narration
+
 
 router = APIRouter()
 
@@ -54,6 +55,19 @@ async def run_pipeline(job_id: str, request: GenerateRequest):
 
 
         # - narration audio (Week 2)
+        jobs[job_id]["progress"].narration = "processing"
+
+        try:
+            narration_url = await generate_narration(prompts.narration_script, job_id)
+            jobs[job_id]["assets"].narration_url = narration_url
+            jobs[job_id]["progress"].narration = "complete"
+        except Exception as narration_error:
+            print(f"NARRATION ERROR: {narration_error}")
+            jobs[job_id]["status"] = "failed"
+            raise
+
+        jobs[job_id]["status"] = "complete"
+
         # - background music (Week 2)
         # - video generation (Week 3)
         # - composite (Week 3)

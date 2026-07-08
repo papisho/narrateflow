@@ -83,7 +83,7 @@ One input. Four outputs. One pipeline.
 <details>
 <summary><strong>Week 2: Image and audio pipeline (upcoming)</strong></summary>
 
-**Day 1**
+**Image generation**
 
 - Built pipeline_service.py with image generation step using GMI Cloud Seedream model
 - Genblaze Pipeline with arun() for non-blocking async image generation
@@ -91,6 +91,16 @@ One input. Four outputs. One pipeline.
 - Wired generate_image into run_pipeline background task in generate.py
 - Image progress tracked: processing → complete in job state
 - Confirmed end to end: topic in → image generated → uploaded to B2 → durable URL returned
+
+**Audio generation**
+
+- Built generate_narration using ElevenLabs SDK directly with Adam voice (eleven_v3)
+- Direct boto3 upload to Backblaze B2 with public URL construction
+- Bypassed Genblaze ElevenLabsTTSProvider due to Windows path restriction bug
+- Wired generate_narration into run_pipeline after image step
+- Narration progress tracked: processing → complete in job state
+- Resolved ElevenLabs free tier restriction: switched from Victoria to Adam voice
+- Confirmed end to end: narration script → mp3 generated → uploaded to B2 → durable URL returned
 
 </details>
 
