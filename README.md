@@ -113,6 +113,21 @@ One input. Four outputs. One pipeline.
 - Confirmed end to end: music prompt → ~3 min mp3 generated → uploaded to B2 → durable URL returned
 </details>
 
+<details>
+<summary><strong>Week 3: Video generation and compositing (in progress)</strong></summary>
+
+**Day 1**
+
+- Built generate_video using GMICloudVideoProvider with Kling-Image2Video-V2.1-Master
+- Takes B2 image URL and video motion prompt, returns animated 5-second mp4
+- Uploaded to B2 via ObjectStorageSink with 600 second timeout
+- Fixed run_pipeline step ordering: script → image → video → narration → music
+- Removed premature "complete" status assignments from mid-pipeline
+- Single "complete" assignment only after all steps finish
+- Confirmed end to end: all five steps completing in correct order
+
+</details>
+
 ---
 
 ## How to run locally

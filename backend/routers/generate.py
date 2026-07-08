@@ -18,7 +18,7 @@ from models.schemas import (
     AssetUrls,
 )
 from services.claude_service import generate_prompts
-from services.pipeline_service import generate_image, generate_narration, generate_music
+from services.pipeline_service import generate_image, generate_narration, generate_music, generate_video
 
 
 router = APIRouter()
@@ -44,32 +44,40 @@ async def run_pipeline(job_id: str, request: GenerateRequest):
         jobs[job_id]["script"] = prompts.narration_script
         jobs[job_id]["progress"].script = "complete"
 
-        # - image generation (Week 2)
-
+        # Step 2: Generate hero image
         jobs[job_id]["progress"].image = "processing"
         image_url = await generate_image(prompts.image_prompt, job_id)
         jobs[job_id]["assets"].image_url = image_url
         jobs[job_id]["progress"].image = "complete"
 
-        jobs[job_id]["status"] = "complete"
+        # Step 3: Animate image to video
+        print(f"DEBUG: Starting video generation for job {job_id}")
+        jobs[job_id]["progress"].video = "processing"
+        try:
+            video_url = await generate_video(
+                image_url,
+                prompts.video_prompt,
+                job_id,
+            )
+            jobs[job_id]["assets"].video_url = video_url
+            jobs[job_id]["progress"].video = "complete"
+        except Exception as video_error:
+            print(f"VIDEO ERROR: {video_error}")
+            jobs[job_id]["progress"].video = "failed"
+            raise
 
-
-        # - narration audio (Week 2)
+        # Step 4: Generate narration audio
         jobs[job_id]["progress"].narration = "processing"
-
         try:
             narration_url = await generate_narration(prompts.narration_script, job_id)
             jobs[job_id]["assets"].narration_url = narration_url
             jobs[job_id]["progress"].narration = "complete"
         except Exception as narration_error:
             print(f"NARRATION ERROR: {narration_error}")
-            jobs[job_id]["status"] = "failed"
+            jobs[job_id]["progress"].narration = "failed"
             raise
 
-        jobs[job_id]["status"] = "complete"
-
-        # - background music (Week 2)
-        # Step 4: Generate background music
+        # Step 5: Generate background music
         jobs[job_id]["progress"].music = "processing"
         try:
             music_url = await generate_music(
@@ -84,12 +92,10 @@ async def run_pipeline(job_id: str, request: GenerateRequest):
             jobs[job_id]["progress"].music = "failed"
             raise
 
-        # - video generation (Week 3)
-        # - composite (Week 3)
-        
+        # All steps complete
+        jobs[job_id]["status"] = "complete"
 
     except Exception as e:
-        # If any step fails, mark the job as failed and store the error message.
         jobs[job_id]["status"] = "failed"
         jobs[job_id]["error"] = str(e)
 

@@ -29,6 +29,7 @@ from config import (
         B2_BUCKET,
         B2_REGION,
     )
+from genblaze_gmicloud import GMICloudVideoProvider
 
 
 def _build_storage() -> ObjectStorageSink:
@@ -179,3 +180,38 @@ async def generate_music(music_prompt: str, job_id: str, duration: int) -> str:
 
     except Exception as e:
         raise RuntimeError(f"B2 music upload failed: {str(e)}") from e
+    
+
+async def generate_video(image_url: str, video_prompt: str, job_id: str) -> str:
+    """Animate the hero image to video using Kling image-to-video via GMI Cloud.
+
+    Takes the B2 URL of the generated image and animates it using the video prompt.
+    Uploads the resulting mp4 to B2 via ObjectStorageSink and returns the durable URL.
+    Times out after 600 seconds (video generation takes 2-5 minutes).
+    Raises RuntimeError if the step fails or produces no assets.
+    """
+    storage = _build_storage()
+
+    result = await (
+        Pipeline(f"narrateflow-video-{job_id}")
+        .step(
+            GMICloudVideoProvider(),
+            model="Kling-Image2Video-V2.1-Master",
+            prompt=video_prompt,
+            modality=Modality.VIDEO,
+            image=image_url,
+            duration=5,
+            aspect_ratio="16:9",
+        )
+        .arun(sink=storage, timeout=600)
+    )
+
+    error = result.error_summary()
+    if error:
+        raise RuntimeError(f"Video generation failed: {error}")
+
+    assets = result.run.steps[0].assets
+    if not assets:
+        raise RuntimeError("Video generation produced no assets.")
+
+    return assets[0].url
